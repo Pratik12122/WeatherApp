@@ -31,11 +31,17 @@ export class WeatherService implements IWeatherService {
 
   constructor(private httpClient : HttpClient) { }
 
-  getCurrentWeather(city:String, country:String) : Observable<ICurrentWeather> {
-    return this.httpClient.get<ICurrentWeatherData>(
-      `${environment.baseUrl}api.openweathermap.org/data/2.5/weather?` +
-      `q=${city},${country}&appid=${environment.appId}`
-    ).pipe(map(data => this.transformToICurrentWeather(data)));
+  getCurrentWeather(search:string|number, country:String) : Observable<ICurrentWeather> {
+      let uriParams = '';
+      if(typeof search === 'string'){
+        uriParams = `q=${search}`
+      } else {
+        uriParams = `zip=${search}`
+      }
+      if (country) {
+        uriParams = `${uriParams},${country}`
+      }
+      return this.getCurrentWeatherHelper(uriParams)
   }
 
 
@@ -48,6 +54,18 @@ export class WeatherService implements IWeatherService {
       temperature: this.convertKelvinToFahrenheit(data.main.temp),
       description: data.weather[0].description
     }
+  }
+
+  private getCurrentWeatherHelper(urlParams: string) : Observable<ICurrentWeather> {
+    return this.httpClient.get<ICurrentWeatherData>(
+      `${environment.baseUrl}api.openweathermap.org/data/2.5/weather?` +
+      `${urlParams}&appid=${environment.appId}`
+    ).pipe(map(data => this.transformToICurrentWeather(data)));
+  }
+
+  getCurrentWeatherByCoords(coords: Coordinates): Observable<ICurrentWeather> {
+    const uriParams = `lat=${coords.latitude}&lon=${coords.longitude}`
+    return this.getCurrentWeatherHelper(uriParams)
   }
 
   private convertKelvinToFahrenheit(kelvin: number): number {
